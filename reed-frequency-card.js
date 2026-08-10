@@ -14,6 +14,20 @@
     - Nur drei aktiv angeregte Zungen
 
  Changelog
+   0.3.12
+   - Leerraum unter dem Instrument weiter reduziert
+   0.3.11
+   - Abstand zwischen Instrument und Live-Frequenz reduziert
+   0.3.10
+   - YAML-Option show_version für die Versionsanzeige ergänzt
+   0.3.9
+   - Grenzbeschriftungen für 49 Hz und 51 Hz ergänzt
+   0.3.8
+   - Test-Schieberegler entfernt
+   - Live-Anzeige der Home-Assistant-Entität wieder aktiviert
+   0.3.7
+   - Test-Schieberegler für lokale Frequenzvorschau ergänzt
+   - Aktive Zunge frequenzabhängig markiert
     0.3.6
     - Symmetrische Darstellung der schwingenden Frequenzzungen
     - Rechteckige Zungen (keine Rundungen mehr)
@@ -48,7 +62,7 @@
 ====================================================
 */
 
-const VERSION = "0.3.6";
+const VERSION = "0.3.12";
 
 /******************************************************************************
  * Frequenzbereich
@@ -65,7 +79,7 @@ const MAX_FREQ = 51.0;
  ******************************************************************************/
 
 const SVG_WIDTH = 800;
-const SVG_HEIGHT = 220;
+const SVG_HEIGHT = 180;
 
 const FRAME_MARGIN = 5;
 
@@ -114,7 +128,7 @@ const COLOR_REED = "#666666";
 const COLOR_REED_ACTIVE = "#d4af37";
 
 const COLOR_SCALE = "#222222";
-/* const COLOR_BASE = "#999999"; */ 
+/* const COLOR_BASE = "#999999"; */
 
 const COLOR_TEXT = "#000000";
 
@@ -125,7 +139,6 @@ const COLOR_TEXT = "#000000";
 console.info(`Reed Frequency Card v${VERSION} geladen`);
 
 class ReedFrequencyCard extends HTMLElement {
-
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -136,14 +149,27 @@ class ReedFrequencyCard extends HTMLElement {
       throw new Error("Entity fehlt!");
     }
 
-    this.config = config;
+    if (
+      config.show_version !== undefined &&
+      typeof config.show_version !== "boolean"
+    ) {
+      throw new Error("show_version muss true oder false sein!");
+    }
+
+    this.config = {
+      ...config,
+      show_version: config.show_version ?? true,
+    };
   }
 
   set hass(hass) {
-
     const freq =
-      parseFloat(hass.states[this.config.entity]?.state) || 50.00;
+      parseFloat(hass.states[this.config.entity]?.state) || 50.0;
 
+    this.renderCard(freq);
+  }
+
+  renderCard(freq) {
     this.shadowRoot.innerHTML = `
       <style>
 
@@ -170,7 +196,8 @@ class ReedFrequencyCard extends HTMLElement {
 
         svg{
           width:100%;
-          height:180px;
+          height:auto;
+          aspect-ratio:${SVG_WIDTH} / ${SVG_HEIGHT};
           display:block;
         }
 
@@ -188,18 +215,22 @@ class ReedFrequencyCard extends HTMLElement {
           ${freq.toFixed(2)} Hz
         </div>
         
-        <div class="version">
-          v${VERSION}
-        </div>
+        ${this.config.show_version ? `
+          <div class="version">
+            v${VERSION}
+          </div>
+        ` : ""}
 
       </ha-card>
     `;
   }
 
-  renderInstrument(freq){
-
+  renderInstrument(freq) {
     return `
-      <svg viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}">
+      <svg
+        viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
+        width="${SVG_WIDTH}"
+        height="${SVG_HEIGHT}">
 
         <!-- Hintergrund -->
 
@@ -215,7 +246,19 @@ class ReedFrequencyCard extends HTMLElement {
 
         <!-- Frequenzzungen -->
 
-        ${this.renderReeds(freq)}
+        <g class="reeds">
+          ${this.renderReeds(freq)}
+        </g>
+
+        <text
+          x="${REED_BASE_X}"
+          y="${LABEL_CENTER_Y}"
+          text-anchor="middle"
+          font-size="${LABEL_FONT_SIZE}"
+          font-weight="bold"
+          fill="${LABEL_COLOR}">
+          49 Hz
+        </text>
         
         <text
           x="${LABEL_CENTER_X}"
@@ -225,54 +268,68 @@ class ReedFrequencyCard extends HTMLElement {
           font-weight="bold"
           fill="${LABEL_COLOR}">
           50 Hz
-        </text> 
+        </text>
+
+        <text
+          x="${REED_BASE_X + REED_BASE_WIDTH}"
+          y="${LABEL_CENTER_Y}"
+          text-anchor="middle"
+          font-size="${LABEL_FONT_SIZE}"
+          font-weight="bold"
+          fill="${LABEL_COLOR}">
+          51 Hz
+        </text>
         
 
         
       </svg>
     `;
-
   }
 
-    renderReeds(freq) {
-        const step = REED_BASE_WIDTH / (REED_COUNT - 1);
-        return Array.from({ length: REED_COUNT }, (_, i) => {
-            const x = REED_BASE_X + i * step;
-        
-        let length = REED_MIN_LENGTH;
-        
-        const distance = Math.abs(i - 20);
-        
-        if (distance === 0) length = 100;
-        else if (distance === 1) length = 66;
-        else if (distance === 2) length = 44;
-        
-        const centerY = REED_BOTTOM_Y - REED_REST_HEIGHT;
+  renderReeds(freq) {
+    const step = REED_BASE_WIDTH / (REED_COUNT - 1);
+    const activeIndex = Math.max(
+      0,
+      Math.min(
+        REED_COUNT - 1,
+        Math.round(
+          ((freq - MIN_FREQ) / (MAX_FREQ - MIN_FREQ)) * (REED_COUNT - 1),
+        ),
+      ),
+    );
 
-        const top = centerY - length / 2;
-        const bottom = centerY + length / 2;
-        
-        return `
+    return Array.from({ length: REED_COUNT }, (_, i) => {
+      const x = REED_BASE_X + i * step;
+
+      let length = REED_MIN_LENGTH;
+
+      const distance = Math.abs(i - activeIndex);
+
+      if (distance === 0) length = 100;
+      else if (distance === 1) length = 66;
+      else if (distance === 2) length = 44;
+
+      const centerY = REED_BOTTOM_Y - REED_REST_HEIGHT;
+
+      const top = centerY - length / 2;
+      const bottom = centerY + length / 2;
+      const fill = i === activeIndex ? COLOR_REED_ACTIVE : COLOR_REED;
+
+      return `
           <rect
             x="${x - REED_STROKE / 2}"
             y="${top}"
             width="${REED_STROKE}"
             height="${bottom - top}"
             rx="${REED_RADIUS}"
-            fill="${COLOR_REED}"/>
+            fill="${fill}"/>
         `;
-    
-      }).join("");
-    
-    }
-    
-  getCardSize(){
-    return 4;
+    }).join("");
   }
 
+  getCardSize() {
+    return 4;
+  }
 }
 
-customElements.define(
-  "reed-frequency-card",
-  ReedFrequencyCard
-);
+customElements.define("reed-frequency-card", ReedFrequencyCard);
