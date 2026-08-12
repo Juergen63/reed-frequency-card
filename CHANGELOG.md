@@ -1,6 +1,16 @@
 # Changelog
 
-## v0.4.0
+## v0.3.14
+
+- Added comprehensive project documentation
+- Added installation instructions
+- Added Home Assistant REST sensor example
+- Added complete YAML configuration example
+- Added configuration reference table
+- Added project screenshot to the README
+- Improved project structure and documentation
+
+## v0.3.13
 
 - Added configurable card title (`title`)
 - Added optional display of three-phase voltage and current values (`show_phase_values`)
