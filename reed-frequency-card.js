@@ -6,14 +6,17 @@
  Authors : Jürgen Zapf + ChatGPT
  Date    : 2026-07-22
 
-    TODO
-    - Rechteckige Zungen statt Linien
-    - Ruhelage definieren
-    - Symmetrische Schwingung um die Ruhelage
-    - Farbänderung entsprechend der Schwingungsamplitude
-    - Nur drei aktiv angeregte Zungen
+  TODO
+    - Nichtlineare Skala im Bereich um 50 Hz
+    - Einschwing-/Ausschwinganimation der Resonanz
 
  Changelog
+  0.3.13
+   - Kartentitel über YAML konfigurierbar
+   - Option show_phase_values ergänzt
+   - Spannungs- und Stromwerte der drei Phasen optional eingeblendet
+   - Neue Funktion renderPhaseValues() eingeführt
+   - Monospace-Darstellung der Phasenwerte für bessere Lesbarkeit
    0.3.12
    - Leerraum unter dem Instrument weiter reduziert
    0.3.11
@@ -62,7 +65,7 @@
 ====================================================
 */
 
-const VERSION = "0.3.12";
+const VERSION = "0.3.13";
 
 /******************************************************************************
  * Frequenzbereich
@@ -156,20 +159,39 @@ class ReedFrequencyCard extends HTMLElement {
       throw new Error("show_version muss true oder false sein!");
     }
 
+    if (
+      config.show_phase_values !== undefined &&
+      typeof config.show_phase_values !== "boolean"
+    ) {
+      throw new Error("show_phase_values muss true oder false sein!");
+    }
+
     this.config = {
+      title: "Netzfrequenz",
+
+      show_version: true,
+      show_phase_values: false,
+
+      voltage_l1: null,
+      current_l1: null,
+
+      voltage_l2: null,
+      current_l2: null,
+
+      voltage_l3: null,
+      current_l3: null,
+
       ...config,
-      show_version: config.show_version ?? true,
     };
   }
 
   set hass(hass) {
-    const freq =
-      parseFloat(hass.states[this.config.entity]?.state) || 50.0;
+    const freq = parseFloat(hass.states[this.config.entity]?.state) || 50.0;
 
-    this.renderCard(freq);
+    this.renderCard(freq, hass);
   }
 
-  renderCard(freq) {
+  renderCard(freq, hass) {
     this.shadowRoot.innerHTML = `
       <style>
 
@@ -194,6 +216,14 @@ class ReedFrequencyCard extends HTMLElement {
           margin-top:12px;
         }
 
+        .phase-values{
+          text-align:center;
+          font-size:12px;
+          font-family: monospace;
+          color:#666666;
+          margin-top:8px;
+        }
+
         svg{
           width:100%;
           height:auto;
@@ -206,7 +236,7 @@ class ReedFrequencyCard extends HTMLElement {
       <ha-card>
 
         <div class="title">
-          Reed Frequency Meter
+          ${this.config.title}
         </div>
 
         ${this.renderInstrument(freq)}
@@ -215,11 +245,25 @@ class ReedFrequencyCard extends HTMLElement {
           ${freq.toFixed(2)} Hz
         </div>
         
-        ${this.config.show_version ? `
+        ${
+          this.config.show_phase_values
+            ? `
+          <div class="phase-values">
+            ${this.renderPhaseValues(hass)}
+          </div>
+        `
+            : ""
+        }
+
+        ${
+          this.config.show_version
+            ? `
           <div class="version">
             v${VERSION}
           </div>
-        ` : ""}
+        `
+            : ""
+        }
 
       </ha-card>
     `;
@@ -325,6 +369,30 @@ class ReedFrequencyCard extends HTMLElement {
             fill="${fill}"/>
         `;
     }).join("");
+  }
+
+  renderPhaseValues(hass) {
+    const getValue = (entity, digits) => {
+      if (!entity) return "--";
+
+      const state = hass.states[entity];
+
+      if (!state) return "--";
+
+      const value = parseFloat(state.state);
+
+      if (isNaN(value)) return "--";
+
+      return value.toFixed(digits);
+    };
+
+    return `
+    ${getValue(this.config.voltage_l1, 1)}V ${getValue(this.config.current_l1, 2)}A
+    •
+    ${getValue(this.config.voltage_l2, 1)}V ${getValue(this.config.current_l2, 2)}A
+    •
+    ${getValue(this.config.voltage_l3, 1)}V ${getValue(this.config.current_l3, 2)}A
+  `;
   }
 
   getCardSize() {
