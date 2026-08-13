@@ -4,7 +4,7 @@ Analoges Reed Frequency Meter für Home Assistant zur Visualisierung der europä
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Compatible-blue)
 ![HACS](https://img.shields.io/badge/HACS-Custom%20Card-orange)
-![GitHub Release](https://img.shields.io/github/v/release/Juergen63/reed-frequency-card)
+![GitHub release](https://img.shields.io/github/v/release/Juergen63/reed-frequency-card?display_name=tag)
 
 ![Reed Frequency Card](docs/images/reed-frequency-card.png)
 
