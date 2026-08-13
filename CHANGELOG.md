@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0] - 2026-08-13
+
+### Added
+
+- Automatische Versionsanzeige über GitHub Release Badge
+- Verbesserte Dokumentation
+- Stabiler Release-Stand der Reed Frequency Card
+
 ## v0.3.14
 
 - Added comprehensive project documentation
