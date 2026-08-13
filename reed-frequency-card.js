@@ -10,7 +10,10 @@
     - Einschwing-/Ausschwinganimation der Resonanz
 
  Changelog
- v0.4.1
+  v0.4.2
+    - kleinere Fehlerkorrekturen
+  v0.4.1
+    - Kleinere Fehlerkorrekturen
     - Nichtlineare Frequenzskala für 49-51 Hz implementiert
     - Skalenauflösung um 50 Hz erhöht
     - Frequenzzungen reagieren empfindlicher im Nennbereich
@@ -78,7 +81,7 @@
 ====================================================
 */
 
-const VERSION = "0.4.1";
+const VERSION = "0.4.2";
 
 /******************************************************************************
  * Frequenzbereich
