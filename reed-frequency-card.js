@@ -7,11 +7,16 @@
  Date    : 2026-07-22
 
   TODO
-    - Nichtlineare Skala im Bereich um 50 Hz
     - Einschwing-/Ausschwinganimation der Resonanz
 
  Changelog
-  v0.3.14
+ v0.4.1
+    - Nichtlineare Frequenzskala für 49-51 Hz implementiert
+    - Skalenauflösung um 50 Hz erhöht
+    - Frequenzzungen reagieren empfindlicher im Nennbereich
+    - Frequenzanzeige auf drei Nachkommastellen erweitert
+    - Skala und Zungenposition synchronisiert 
+ v0.3.14
     - Added comprehensive project documentation
     - Added installation instructions
     - Added Home Assistant REST sensor example
@@ -73,7 +78,7 @@
 ====================================================
 */
 
-const VERSION = "0.3.14";
+const VERSION = "0.4.1";
 
 /******************************************************************************
  * Frequenzbereich
@@ -250,7 +255,7 @@ class ReedFrequencyCard extends HTMLElement {
         ${this.renderInstrument(freq)}
 
         <div class="value">
-          ${freq.toFixed(2)} Hz
+          ${freq.toFixed(3)} Hz
         </div>
         
         ${
@@ -296,46 +301,113 @@ class ReedFrequencyCard extends HTMLElement {
           stroke="${COLOR_FRAME}"
           stroke-width="4"/>
 
+        ${this.renderScale()}
+
         <!-- Frequenzzungen -->
 
         <g class="reeds">
           ${this.renderReeds(freq)}
         </g>
-
-        <text
-          x="${REED_BASE_X}"
-          y="${LABEL_CENTER_Y}"
-          text-anchor="middle"
-          font-size="${LABEL_FONT_SIZE}"
-          font-weight="bold"
-          fill="${LABEL_COLOR}">
-          49 Hz
-        </text>
-        
-        <text
-          x="${LABEL_CENTER_X}"
-          y="${LABEL_CENTER_Y}"
-          text-anchor="middle"
-          font-size="${LABEL_FONT_SIZE}"
-          font-weight="bold"
-          fill="${LABEL_COLOR}">
-          50 Hz
-        </text>
-
-        <text
-          x="${REED_BASE_X + REED_BASE_WIDTH}"
-          y="${LABEL_CENTER_Y}"
-          text-anchor="middle"
-          font-size="${LABEL_FONT_SIZE}"
-          font-weight="bold"
-          fill="${LABEL_COLOR}">
-          51 Hz
-        </text>
-        
+      
 
         
       </svg>
     `;
+  }
+
+  frequencyScaleX(freq) {
+    const center = NOMINAL_FREQ;
+
+    // Abstand zur Mitte
+    const delta = freq - center;
+
+    // Spreizung um 50 Hz
+    // kleiner Exponent = stärkere Spreizung der Mitte
+    const stretched = Math.sign(delta) * Math.pow(Math.abs(delta), 0.35);
+
+    // Normierung für den Bereich 49 ... 51 Hz
+    const min = Math.pow(1, 0.65);
+
+    const position = (stretched + min) / (2 * min);
+
+    return REED_BASE_X + position * REED_BASE_WIDTH;
+  }
+
+  renderScale() {
+    const majorMarks = [
+      { value: 49.0, label: "49 Hz" },
+      { value: 49.5, label: "49.5" },
+      { value: 50.0, label: "50 Hz" },
+      { value: 50.5, label: "50.5" },
+      { value: 51.0, label: "51 Hz" },
+    ];
+
+    const minorMarks = [
+      49.2, 49.4,
+
+      49.7, 49.8, 49.9,
+
+      49.94, 49.96, 49.98,
+
+      50.02, 50.04, 50.06,
+
+      50.1, 50.2, 50.3,
+
+      50.6, 50.8,
+    ];
+
+    const minorTicks = minorMarks
+      .map((value) => {
+        const x = this.frequencyScaleX(value);
+
+        return `
+      <line
+        x1="${x}"
+        y1="55"
+        x2="${x}"
+        y2="65"
+        stroke="${COLOR_SCALE}"
+        stroke-width="1"/>
+    `;
+      })
+      .join("");
+
+    const majorTicks = majorMarks
+      .map((mark) => {
+        const x = this.frequencyScaleX(mark.value);
+
+        return `
+      <line
+        x1="${x}"
+        y1="50"
+        x2="${x}"
+        y2="70"
+        stroke="${COLOR_SCALE}"
+        stroke-width="2"/>
+
+      <text
+        x="${x}"
+        y="38"
+        text-anchor="middle"
+        font-size="18"
+        fill="${COLOR_TEXT}">
+        ${mark.label}
+      </text>
+    `;
+      })
+      .join("");
+
+    return minorTicks + majorTicks;
+  }
+
+  frequencyReedPosition(freq) {
+    const delta = freq - NOMINAL_FREQ;
+
+    const stretched = Math.sign(delta) * Math.pow(Math.abs(delta), 0.35);
+
+    const min = Math.pow(1, 0.35);
+
+    return (stretched + min) / (2 * min);
   }
 
   renderReeds(freq) {
@@ -344,9 +416,7 @@ class ReedFrequencyCard extends HTMLElement {
       0,
       Math.min(
         REED_COUNT - 1,
-        Math.round(
-          ((freq - MIN_FREQ) / (MAX_FREQ - MIN_FREQ)) * (REED_COUNT - 1),
-        ),
+        Math.round(this.frequencyReedPosition(freq) * (REED_COUNT - 1)),
       ),
     );
 

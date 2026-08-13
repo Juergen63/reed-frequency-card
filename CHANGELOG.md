@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.1
+
+- Nichtlineare Frequenzskala für 49-51 Hz implementiert
+- Skalenauflösung um 50 Hz erhöht
+- Frequenzzungen reagieren empfindlicher im Nennbereich
+- Frequenzanzeige auf drei Nachkommastellen erweitert
+- Skala und Zungenposition synchronisiert
+-
+
 ## [0.4.0] - 2026-08-13
 
 ### Added
