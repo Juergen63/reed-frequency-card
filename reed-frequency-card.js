@@ -10,6 +10,12 @@
     - Einschwing-/Ausschwinganimation der Resonanz
 
  Changelog
+   v0.4.3
+    - 24h Mittelwert der Netzfrequenz als Referenzanzeige ergänzt
+    - Neue Konfigurationsoption average_entity hinzugefügt
+    - Aktuelle Frequenz bleibt mittig ausgerichtet
+    - 24h Durchschnitt rechtsbündig auf gleicher Höhe dargestellt
+    - Anzeige von Livewert und Mittelwert optisch harmonisiert
   v0.4.2
     - kleinere Fehlerkorrekturen
   v0.4.1
@@ -81,7 +87,7 @@
 ====================================================
 */
 
-const VERSION = "0.4.2";
+const VERSION = "0.4.3";
 
 /******************************************************************************
  * Frequenzbereich
@@ -182,11 +188,20 @@ class ReedFrequencyCard extends HTMLElement {
       throw new Error("show_phase_values muss true oder false sein!");
     }
 
+    if (
+      config.show_average !== undefined &&
+      typeof config.show_average !== "boolean"
+    ) {
+      throw new Error("show_average muss true oder false sein!");
+    }
+
     this.config = {
       title: "Netzfrequenz",
 
       show_version: true,
       show_phase_values: false,
+      average_entity: null,
+      show_average: true,
 
       voltage_l1: null,
       current_l1: null,
@@ -208,6 +223,20 @@ class ReedFrequencyCard extends HTMLElement {
   }
 
   renderCard(freq, hass) {
+    let avgFreq = null;
+
+    if (this.config.average_entity) {
+      const avgState = hass.states[this.config.average_entity];
+
+      if (avgState) {
+        const value = parseFloat(avgState.state);
+
+        if (!isNaN(value)) {
+          avgFreq = value;
+        }
+      }
+    }
+
     this.shadowRoot.innerHTML = `
       <style>
 
@@ -227,9 +256,25 @@ class ReedFrequencyCard extends HTMLElement {
         }
 
         .value{
-          text-align:center;
-          font-size:22px;
+          position:relative;
           margin-top:12px;
+          height:28px;
+        }
+
+        .current-frequency{
+          position:absolute;
+          left:50%;
+          transform:translateX(-50%);
+          font-size:22px;
+        }
+
+        .average-frequency{
+          position:absolute;
+          right:0;
+          top:50%;
+          transform:translateY(-50%);
+          font-size:12px;
+          color:#666666;
         }
 
         .phase-values{
@@ -258,7 +303,21 @@ class ReedFrequencyCard extends HTMLElement {
         ${this.renderInstrument(freq)}
 
         <div class="value">
-          ${freq.toFixed(3)} Hz
+
+          <span class="current-frequency">
+            ${freq.toFixed(3)} Hz
+          </span>
+
+        ${
+          this.config.show_average && avgFreq !== null
+            ? `
+          <span class="average-frequency">
+            Ø24h ${avgFreq.toFixed(3)} Hz
+          </span>
+          `
+            : ""
+        }
+
         </div>
         
         ${

@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.4.3
+
+- 24h Mittelwert der Netzfrequenz als Referenzanzeige ergänzt
+- Neue Konfigurationsoption average_entity hinzugefügt
+- Aktuelle Frequenz bleibt mittig ausgerichtet
+- 24h Durchschnitt rechtsbündig auf gleicher Höhe dargestellt
+- Anzeige von Livewert und Mittelwert optisch harmonisiert
+
+## v0.4.2
+
+- kleinere Fehlerkorrekturen
+
 ## v0.4.1
 
 - Nichtlineare Frequenzskala für 49-51 Hz implementiert
